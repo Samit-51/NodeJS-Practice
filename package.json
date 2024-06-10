@@ -1,18 +1,14 @@
 {
-  "name": "new",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "canvas": "^2.11.2",
+    "ejs": "^3.1.10",
     "express": "^4.19.2",
+    "fs": "^0.0.1-security",
+    "jimp": "^0.22.12",
     "mysql": "^2.18.1",
-    "qrcode": "^1.5.3"
+    "node": "^20.14.0",
+    "path": "^0.12.7",
+    "qrcode": "^1.5.3",
+    "qrcode-reader": "^1.0.4"
   }
 }
