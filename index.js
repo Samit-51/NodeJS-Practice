@@ -12,7 +12,7 @@ const con = mysql.createConnection({
     password: "1221",
     database: 'mydb'
 });
-
+app.use(express.static(__dirname));
 con.connect(err => {
     if (err) {
         console.error("Error connecting to MySQL database:", err);
@@ -61,12 +61,10 @@ async function CheckDB() {
 }
 
 app.get('/', (req, res) => {
-    app.use(express.static(__dirname));
-    res.send('Welcome to the Hotel QR Code Service!');
+    res.send('Welcome to the page.');
 });
 
 app.get('/hotel/:Hotel_id', (req, res) => {
-    app.use(express.static(__dirname));
     const hotelId = req.params.Hotel_id;
     con.query('SELECT * FROM hotel WHERE Hotel_id = ?', [hotelId], (err, result) => {
         if (err) {
