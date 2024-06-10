@@ -1,18 +1,18 @@
 const express = require('express');
-const { readFile } = require('fs');
 const { createCanvas } = require('canvas');
 const mysql = require('mysql');
 const QRCode = require('qrcode');
 const path = require('path');
 const app = express();
 const canvas = createCanvas(250, 250);
+app.use(express.static(__dirname));
 const con = mysql.createConnection({
     host: "localhost",
     user: "samit",
     password: "1221",
     database: 'mydb'
 });
-app.use(express.static(__dirname));
+
 con.connect(err => {
     if (err) {
         console.error("Error connecting to MySQL database:", err);
@@ -35,7 +35,7 @@ async function createQR(url) {
 }
 
 function updateDB(QrCodeImg, Hotel_id) {
-    con.query('UPDATE hotel SET QRCode = ? WHERE Hotel_id = ?', [QrCodeImg, Hotel_id], (err, result) => {
+    con.query('UPDATE hotels SET QRCode = ? WHERE Hotel_id = ?', [QrCodeImg, Hotel_id], (err, result) => {
         if (err) {
             console.error(`Error updating QRCode for Hotel_id ${Hotel_id}:`, err);
             return;
@@ -45,7 +45,7 @@ function updateDB(QrCodeImg, Hotel_id) {
 }
 
 async function CheckDB() {
-    con.query('SELECT * FROM hotel WHERE QRCode IS NULL', async (err, result) => {
+    con.query('SELECT * FROM Hotels WHERE QRCode IS NULL', async (err, result) => {
         if (err) {
             console.error('Error querying database:', err);
             return;
@@ -59,34 +59,21 @@ async function CheckDB() {
         }
     });
 }
-
-app.get('/', (req, res) => {
+app.get('/',(req,res)=>{
     res.send('Welcome to the page.');
 });
-
 app.get('/hotel/:Hotel_id', (req, res) => {
     const hotelId = req.params.Hotel_id;
-    con.query('SELECT * FROM hotel WHERE Hotel_id = ?', [hotelId], (err, result) => {
-        if (err) {
-            console.error('Error fetching hotel data:', err);
-            res.status(500).send('Internal server error');
-            return;
-        }
+    con.query('SELECT * FROM hotels WHERE Hotel_id = ?', [hotelId], (err, result) => {
+        if (err) throw err;
         if (result.length === 0) {
-            res.status(404).send('No hotel found.');
+            res.status(400).send('No hotels found.');
             return;
         }
         const hotel = result[0];
-        readFile(path.join(__dirname, 'body.html'), 'utf8', (err, html) => {
-            if (err) {
-                console.error('Error reading HTML file:', err);
-                res.status(500).send('Internal server error');
-                return;
-            }
-            html = html.replace('{{name}}', hotel.Hotel_name);
-            html = html.replace('{{hotelId}}',hotelId);
-            res.send(html);
-        });
+        html = html.replace('{{name}}', hotel.Hotel_name);
+        html = html.replace('{{hotelId}}', hotelId);
+        res.send(html);
     });
 });
 
@@ -103,4 +90,4 @@ process.on('SIGINT', () => {
 });
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Web available on http://localhost:${PORT}`));
-const interval = setInterval(CheckDB, 5000);
+const interval = setInterval(CheckDB, 500);
