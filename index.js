@@ -3,17 +3,37 @@ const { createCanvas } = require('canvas');
 const mysql = require('mysql');
 const QRCode = require('qrcode');
 const path = require('path');
+const { fs } = require('fs');
 const app = express();
 const canvas = createCanvas(250, 250);
-app.use(express.static(__dirname));
 const con = mysql.createConnection({
     host: "localhost",
     user: "samit",
     password: "1221",
     database: 'mydb'
 });
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('/',(req,res)=>{
+    res.send('Welcome to the page.');
+});
+app.get('/hotel/:Hotel_id', (req, res) => {
+    const hotelId = req.params.Hotel_id;
+    con.query('SELECT * FROM hotels WHERE Hotel_id = ?', [hotelId], (err, result) => {
+        if (err) throw err;
+        if (result.length === 0) {
+            res.status(400).send('No hotels found.');
+            return;
+        }
+        const hotel = result[0];
+        let html = fs.readFileSync(path.join(__dirname, 'body.html'), 'utf8');
+        html = html.replace('{{name}}', hotel.Hotel_name);
+        html = html.replace('{{hotelId}}', hotelId);
+        res.send(html);
+    });
+});
 
-con.connect(err => {
+
+    con.connect(err => {
     if (err) {
         console.error("Error connecting to MySQL database:", err);
         process.exit(1);
@@ -59,24 +79,6 @@ async function CheckDB() {
         }
     });
 }
-app.get('/',(req,res)=>{
-    res.send('Welcome to the page.');
-});
-app.get('/hotel/:Hotel_id', (req, res) => {
-    const hotelId = req.params.Hotel_id;
-    con.query('SELECT * FROM hotels WHERE Hotel_id = ?', [hotelId], (err, result) => {
-        if (err) throw err;
-        if (result.length === 0) {
-            res.status(400).send('No hotels found.');
-            return;
-        }
-        const hotel = result[0];
-        html = html.replace('{{name}}', hotel.Hotel_name);
-        html = html.replace('{{hotelId}}', hotelId);
-        res.send(html);
-    });
-});
-
 process.on('SIGINT', () => {
     clearInterval(interval);
     con.end(err => {
