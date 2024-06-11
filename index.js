@@ -3,7 +3,8 @@ const { createCanvas } = require('canvas');
 const mysql = require('mysql');
 const QRCode = require('qrcode');
 const path = require('path');
-const { fs } = require('fs');
+const fs = require('fs/promises');
+const internal = require('stream');
 const app = express();
 const canvas = createCanvas(250, 250);
 const con = mysql.createConnection({
@@ -13,34 +14,43 @@ const con = mysql.createConnection({
     database: 'mydb'
 });
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('/',(req,res)=>{
-    res.send('Welcome to the page.');
-});
-app.get('/hotel/:Hotel_id', (req, res) => {
-    const hotelId = req.params.Hotel_id;
-    con.query('SELECT * FROM hotels WHERE Hotel_id = ?', [hotelId], (err, result) => {
-        if (err) throw err;
-        if (result.length === 0) {
-            res.status(400).send('No hotels found.');
-            return;
-        }
-        const hotel = result[0];
-        let html = fs.readFileSync(path.join(__dirname, 'body.html'), 'utf8');
-        html = html.replace('{{name}}', hotel.Hotel_name);
-        html = html.replace('{{hotelId}}', hotelId);
-        res.send(html);
-    });
-});
 
-
-    con.connect(err => {
-    if (err) {
-        console.error("Error connecting to MySQL database:", err);
-        process.exit(1);
-    }
+con.connect(err => {
+    if(err) throw err;
     console.log("Connected to MySQL database!");
 });
 
+app.get('/', async (req,res)=>{
+    try{
+        let html = await fs.readFile('public/body.html', 'utf8');
+        res.send(html);
+    }
+    catch(err){
+        res.status(500).send('Internal server error.');
+    }
+});
+app.get('/hotel/:id',(req, res) => {
+    let hotelId = req.params.id;
+    try {
+        con.query('SELECT * FROM hotels WHERE Hotel_id = ?',[hotelId], async (err,result)=>{
+            if (result.length === 0) {
+                return res.send('No hotels found');
+            }
+            try{
+                let hotel = result[0];
+                let html = await fs.readFile('public/body.html', 'utf8');
+                html = html.replace('{{name}}', hotel.Hotel_name);
+                html = html.replace('{{id}}', hotel.Hotel_id);
+                res.send(html);
+            }catch(fileErr){
+                res.send('Error reading HTML file.');
+            }
+        });
+    } catch (err) {
+        console.log(err);
+        res.status(500).send('Server error');
+    }
+});
 async function createQR(url) {
     try {
         let canvas = createCanvas(250, 250);
@@ -71,7 +81,7 @@ async function CheckDB() {
             return;
         }
         for (const row of result) {
-            const url = `http://localhost:3000/hotel/${row.Hotel_id}`;
+            const url = `https://localhost:3000/body.html/${row.Hotel_id}`;
             const QrCodeImg = await createQR(url);
             if (QrCodeImg) {
                 updateDB(QrCodeImg, row.Hotel_id);
@@ -81,15 +91,17 @@ async function CheckDB() {
 }
 process.on('SIGINT', () => {
     clearInterval(interval);
-    con.end(err => {
+
+    con.end((err) => {
         if (err) {
-            console.error('Error closing MySQL connection:', err);
-        } else {
-            console.log('MySQL connection closed');
+            console.error('Error ending connection:', err);
+            process.exit(1);
         }
-        process.exit();
+        console.log('Connection Ended');
+        process.exit(0);
     });
 });
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Web available on http://localhost:${PORT}`));
+
 const interval = setInterval(CheckDB, 500);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT,()=> console.log(`Web available at http://localhost:${PORT}/hotel/ABC1070`));
