@@ -15,7 +15,7 @@ const con = mysql.createConnection({
 });
 app.use(express.static(path.join(__dirname, 'public')));
 
-con.connect(err => {
+con.connect(async err => {
     if(err) throw err;
     console.log("Connected to MySQL database!");
 });
@@ -37,13 +37,13 @@ app.get('/hotel/:id',(req, res) => {
                 return res.send('No hotels found');
             }
             try{
-                let hotel = result[0];
-                let html = await fs.readFile('public/body.html', 'utf8');
+                let hotel = result[0]
+                let html = await fs.readFile(path.join(__dirname, 'public/body.html'), 'utf8');
                 html = html.replace('{{name}}', hotel.Hotel_name);
-                html = html.replace('{{id}}', hotel.Hotel_id);
                 res.send(html);
-            }catch(fileErr){
-                res.send('Error reading HTML file.');
+            }
+            catch(err){
+                res.status(500).send('Internal server error.');
             }
         });
     } catch (err) {
@@ -89,18 +89,7 @@ async function CheckDB() {
         }
     });
 }
-process.on('SIGINT', () => {
-    clearInterval(interval);
 
-    con.end((err) => {
-        if (err) {
-            console.error('Error ending connection:', err);
-            process.exit(1);
-        }
-        console.log('Connection Ended');
-        process.exit(0);
-    });
-});
 
 const interval = setInterval(CheckDB, 500);
 const PORT = process.env.PORT || 3000;
