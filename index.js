@@ -22,7 +22,8 @@ con.connect(async err => {
 
 app.get('/', async (req,res)=>{
     try{
-        let html = await fs.readFile('public/body.html', 'utf8');
+        let html = await fs.readFile('public/body2.html', 'utf8');
+        html = html.replace('{{name}}','infoSathi');
         res.send(html);
     }
     catch(err){

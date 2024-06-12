@@ -57,3 +57,9 @@ h1{
     bottom: 0;
     left: 0;
 }
+p{
+    color: white;
+    text-align: center;
+    font-family: sans-serif;
+    font-size: 2rem;
+}
