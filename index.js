@@ -4,9 +4,7 @@ const mysql = require('mysql');
 const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs/promises');
-const internal = require('stream');
 const app = express();
-const canvas = createCanvas(250, 250);
 const con = mysql.createConnection({
     host: "localhost",
     user: "samit",
